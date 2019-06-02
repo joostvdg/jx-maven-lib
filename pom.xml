@@ -6,7 +6,7 @@
 
   <groupId>com.github.joostvdg.jx</groupId>
   <artifactId>maven-lib</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.1</version>
 
   <name>maven-lib</name>
   <!-- FIXME change it to the project's website -->
