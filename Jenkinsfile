@@ -29,6 +29,9 @@ pipeline {
       when {
         branch 'master'
       }
+      environment {
+          SETTINGS = credentials('another-test-file2')
+      }
       steps {
         container('maven') {
 
@@ -41,7 +44,8 @@ pipeline {
           sh "echo \$(jx-release-version) > VERSION"
           sh "mvn versions:set -DnewVersion=\$(cat VERSION) -e"
           sh "jx step tag --version \$(cat VERSION)"
-          sh "mvn clean javadoc:aggregate deploy -C -e"
+          sh 'mvn clean javadoc:aggregate verify -C -e'
+          sh "mvn deploy --show-version --errors --activate-profiles jx-nexus --strict-checksums --settings ${SETTINGS}"
         }
       }
     }
