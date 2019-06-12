@@ -1,6 +1,6 @@
 pipeline {
   agent {
-    label "jenkins-maven-java11"
+    label "jenkins-maven"
   }
   environment {
     ORG = 'joostvdg'
@@ -21,7 +21,14 @@ pipeline {
       steps {
         container('maven') {
           sh "mvn versions:set -DnewVersion=$PREVIEW_VERSION"
-          sh "mvn verify -C -e"
+          sh "mvn install"
+          sh "skaffold version"
+          sh "export VERSION=$PREVIEW_VERSION && skaffold build -f skaffold.yaml"
+          sh "jx step post build --image $DOCKER_REGISTRY/$ORG/$APP_NAME:$PREVIEW_VERSION"
+          dir('charts/preview') {
+            sh "make preview"
+            sh "jx preview --app $APP_NAME --dir ../.."
+          }
         }
       }
     }
@@ -39,10 +46,30 @@ pipeline {
 
           // so we can retrieve the version in later steps
           sh "echo \$(jx-release-version) > VERSION"
-          sh "mvn versions:set -DnewVersion=\$(cat VERSION) -e"
+          sh "mvn versions:set -DnewVersion=\$(cat VERSION)"
           sh "jx step tag --version \$(cat VERSION)"
-          sh 'mvn clean javadoc:aggregate verify -C -e'
-          sh "mvn deploy --show-version --errors --strict-checksums -debug"
+          sh "mvn clean deploy"
+          sh "skaffold version"
+          sh "export VERSION=`cat VERSION` && skaffold build -f skaffold.yaml"
+          sh "jx step post build --image $DOCKER_REGISTRY/$ORG/$APP_NAME:\$(cat VERSION)"
+        }
+      }
+    }
+    stage('Promote to Environments') {
+      when {
+        branch 'master'
+      }
+      steps {
+        container('maven') {
+          dir('charts/jx-maven-lib') {
+            sh "jx step changelog --version v\$(cat ../../VERSION)"
+
+            // release the helm chart
+            sh "jx step helm release"
+
+            // promote through all 'Auto' promotion Environments
+            sh "jx promote -b --all-auto --timeout 1h --version \$(cat ../../VERSION)"
+          }
         }
       }
     }
