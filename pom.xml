@@ -38,6 +38,12 @@
             </repository>
         </distributionManagement>
     </profile>
+    <profile>
+        <id>java13</id>
+        <build>
+            <directory>java13</directory>
+        </build>
+    </profile>
  </profiles>
 
   <build>
