@@ -49,5 +49,17 @@ spec:
                 }
             }
         }
+        stage('Javadoc'){
+            steps {
+                container('maven') {
+                    sh 'mvn javadoc:aggregate'
+                }
+            }
+            post {
+                success {
+                    step([$class: 'JavadocArchiver', javadocDir: 'target/site/apidocs', keepAll: true])
+                }
+            }
+        }
     }
 }
