@@ -49,7 +49,7 @@ pipeline {
             }
         }
         stage('PR Build') {
-            when { changeRequest authorEmail: "joostvdg@[\w]+.com", comparator: 'REGEXP' }
+            when { changeRequest authorEmail: "joostvdg@[\\w]+.com", comparator: 'REGEXP' }
             parallel {
                 stage('PR') {
                     agent {
