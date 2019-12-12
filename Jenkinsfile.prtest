@@ -1,0 +1,81 @@
+
+def jdk11Yaml = """
+spec:
+  containers:
+  - name: mavenjdk11
+    image: maven:3-jdk-11-slim
+    command: ['cat']
+    tty: true
+    volumeMounts:
+      - name: maven-cache
+        mountPath: /root/.m2/repository
+  volumes:
+    - name: maven-cache
+      hostPath:
+        path: /tmp
+        type: Directory
+"""
+
+pipeline {
+    agent none
+    stages {
+        stage('Master Build') {
+            when { allOf { branch 'master'; changeset "src/**/*.*" } }
+            parallel {
+                stage('Main') {
+                    agent {
+                        kubernetes {
+                            idleMinutes 5
+                            activeDeadlineSeconds 300
+                            label "pl_mavenjdk11-${BUILD_NUMBER}"
+                            yaml jdk11Yaml
+                        }
+                    }
+                    stages {
+                        stage('Checkout') {
+                            steps {
+                                git 'https://github.com/joostvdg/jx-maven-lib.git'
+                            }
+                        }
+                        stage('Build') {
+                            steps {
+                                container('maven') {
+                                    sh 'mvn clean verify -e --show-version'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('PR Build') {
+            when { changeRequest authorEmail: "[\\w_-.]+@gmail.com", comparator: 'REGEXP' }
+            parallel {
+                stage('PR') {
+                    agent {
+                        kubernetes {
+                            idleMinutes 5
+                            activeDeadlineSeconds 300
+                            label "pl_mavenjdk11-${BUILD_NUMBER}"
+                            yaml jdk11Yaml
+                        }
+                    }
+                    stages {
+                        stage('Checkout') {
+                            steps {
+                                git 'https://github.com/joostvdg/jx-maven-lib.git'
+                            }
+                        }
+                        stage('Build') {
+                            steps {
+                                container('maven') {
+                                    sh 'mvn clean verify -e --show-version'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
