@@ -2,7 +2,7 @@
 def jdk11Yaml = """
 spec:
   containers:
-  - name: mavenjdk11
+  - name: maven
     image: maven:3-jdk-11-slim
     command: ['cat']
     tty: true
